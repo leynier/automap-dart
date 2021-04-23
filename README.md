@@ -1,6 +1,6 @@
 # AutoMapper for Dart
 
-An auto mapper for Dart.
+An auto mapper for Dart. It allows mapping objects of different classes automatically and manually using JSON serialization.
 
 ## Example
 

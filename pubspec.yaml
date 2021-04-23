@@ -1,6 +1,6 @@
 name: automap
-description: An auto mapper for Dart.
-version: 0.0.1
+description: An auto mapper for Dart. It allows mapping objects of different classes automatically and manually using JSON serialization.
+version: 0.0.2
 repository: https://github.com/leynier/automapper-dart
 
 environment:
