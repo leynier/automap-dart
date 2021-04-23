@@ -1,4 +1,4 @@
-import 'package:automapper/automapper.dart';
+import 'package:automap/src/auto_mapper.dart';
 
 /// An expression that defines how to map the [TTarget] type to the
 /// [TSource] type.

@@ -1,6 +1,6 @@
-import 'package:automapper/automapper.dart';
-import 'package:automapper/src/map_exception.dart';
-import 'package:automapper/src/map_expression.dart';
+import 'package:automap/src/auto_mapper.dart';
+import 'package:automap/src/map_exception.dart';
+import 'package:automap/src/map_expression.dart';
 
 /// Configuration to manual map the [TSource] type to the [TTarget] type.
 class ManualMapConfiguration<TSource, TTarget> {

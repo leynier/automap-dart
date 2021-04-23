@@ -1,4 +1,4 @@
-import 'package:automapper/automapper.dart';
+import 'package:automap/automap.dart';
 
 class AutoSource implements AutoMapperModel {
   final int x;

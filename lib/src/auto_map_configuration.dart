@@ -1,5 +1,5 @@
-import 'package:automapper/src/automapper_model.dart';
-import 'package:automapper/src/map_exception.dart';
+import 'package:automap/src/auto_mapper_model.dart';
+import 'package:automap/src/map_exception.dart';
 
 /// Configuration to auto map the [TSource] type to the [TTarget] type.
 class AutoMapConfiguration<TSource extends AutoMapperModel, TTarget> {

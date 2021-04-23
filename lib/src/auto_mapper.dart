@@ -1,13 +1,9 @@
-library automapper;
-
-import 'package:automapper/src/auto_map_configuration.dart';
-import 'package:automapper/src/automapper_model.dart';
-import 'package:automapper/src/manual_map_configuration.dart';
-import 'package:automapper/src/map_does_not_exist_error.dart';
-import 'package:automapper/src/map_duplicate_error.dart';
-import 'package:automapper/src/map_expression.dart';
-
-export 'package:automapper/src/automapper_model.dart';
+import 'package:automap/src/auto_map_configuration.dart';
+import 'package:automap/src/auto_mapper_model.dart';
+import 'package:automap/src/manual_map_configuration.dart';
+import 'package:automap/src/map_does_not_exist_error.dart';
+import 'package:automap/src/map_duplicate_error.dart';
+import 'package:automap/src/map_expression.dart';
 
 /// Handles mapping between different types.
 class AutoMapper {
