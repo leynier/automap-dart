@@ -1,5 +1,7 @@
 # AutoMapper for Dart
 
+[![style: lint](https://img.shields.io/badge/style-lint-4BC0F5.svg)](https://pub.dev/packages/lint)
+
 An auto mapper for Dart. It allows mapping objects of different classes automatically and manually using JSON serialization.
 
 ## Example
