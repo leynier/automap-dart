@@ -1,36 +1,51 @@
 import 'package:automap/src/auto_map_configuration.dart';
 import 'package:automap/src/auto_mapper_model.dart';
+import 'package:automap/src/exceptions.dart';
 import 'package:automap/src/manual_map_configuration.dart';
-import 'package:automap/src/map_does_not_exist_error.dart';
-import 'package:automap/src/map_duplicate_error.dart';
 import 'package:automap/src/map_expression.dart';
 
 /// Handles mapping between different types.
+///
+/// Usage:
+///
+/// ```dart
+/// AutoMapper.I.addAutoMap<Source, Target>(Target.fromAutoJson);
+/// final target = AutoMapper.I.map<Source, Target>(source);
+/// ```
 class AutoMapper {
-  static final _instance = AutoMapper();
-  static AutoMapper get I => _instance;
+  /// The singleton instance of [AutoMapper].
+  static AutoMapper I = AutoMapper._();
 
-  final _autoMaps = <Type, Map<Type, AutoMapConfiguration>>{};
-  final _manualMaps = <Type, Map<Type, ManualMapConfiguration>>{};
+  AutoMapper._();
+
+  final _autoMaps = <Type, Map<Type, AutoMapConfiguration<dynamic, dynamic>>>{};
+  final _manualMaps =
+      <Type, Map<Type, ManualMapConfiguration<dynamic, dynamic>>>{};
+
+  /// Replaces the [AutoMapper.I] singleton with a fresh instance.
+  ///
+  /// Useful to isolate state between tests.
+  static void reset() {
+    I = AutoMapper._();
+  }
 
   /// Checks if the mapper has a map for the [destination] and [source] types.
   bool hasMap(Type destination, Type source) =>
       hasAutoMap(destination, source) || hasManualMap(destination, source);
 
-  /// Checks if the mapper has an auto map for the [destination] and [source] types.
+  /// Checks if the mapper has an auto map for the [destination] and [source]
+  /// types.
   bool hasAutoMap(Type destination, Type source) =>
-      _autoMaps.containsKey(destination) &&
-      _autoMaps[destination]!.containsKey(source) &&
-      _autoMaps[destination]![source] != null;
+      _autoMaps[destination]?.containsKey(source) ?? false;
 
-  /// Checks if the mapper has a manual map for the [destination] and [source] types.
+  /// Checks if the mapper has a manual map for the [destination] and [source]
+  /// types.
   bool hasManualMap(Type destination, Type source) =>
-      _manualMaps.containsKey(destination) &&
-      _manualMaps[destination]!.containsKey(source) &&
-      _manualMaps[destination]![source] != null;
+      _manualMaps[destination]?.containsKey(source) ?? false;
 
   /// Adds a function that defines how to auto map from a [TSource] to a
   /// [TTarget] type.
+  @Deprecated('Use addAutoMap instead')
   void addMap<TSource extends AutoMapperModel, TTarget>(
     TTarget Function(Map<String, dynamic>) expression,
   ) {
@@ -43,13 +58,11 @@ class AutoMapper {
     TTarget Function(Map<String, dynamic>) expression,
   ) {
     if (hasMap(TTarget, TSource)) {
-      throw MapDuplicateError(TTarget, TSource);
+      throw MapDuplicateException(TTarget, TSource);
     }
-    if (!_autoMaps.containsKey(TTarget)) {
-      _autoMaps[TTarget] = <Type, AutoMapConfiguration>{};
-    }
-    final conf = AutoMapConfiguration<TSource, TTarget>(expression);
-    _autoMaps[TTarget]![TSource] = conf;
+    (_autoMaps[TTarget] ??=
+            <Type, AutoMapConfiguration<dynamic, dynamic>>{})[TSource] =
+        AutoMapConfiguration<TSource, TTarget>(expression);
   }
 
   /// Adds an expression that defines how to manual map from a [TSource] to a
@@ -58,46 +71,79 @@ class AutoMapper {
     MapExpression<TSource, TTarget> expression,
   ) {
     if (hasMap(TTarget, TSource)) {
-      throw MapDuplicateError(TTarget, TSource);
+      throw MapDuplicateException(TTarget, TSource);
     }
-    if (!_manualMaps.containsKey(TTarget)) {
-      _manualMaps[TTarget] = <Type, ManualMapConfiguration<TSource, TTarget>>{};
-    }
-    final conf = ManualMapConfiguration<TSource, TTarget>(expression);
-    _manualMaps[TTarget]![TSource] = conf;
+    (_manualMaps[TTarget] ??=
+            <Type, ManualMapConfiguration<dynamic, dynamic>>{})[TSource] =
+        ManualMapConfiguration<TSource, TTarget>(expression);
   }
 
-  /// Maps the [source].
+  /// Maps the [source] using the registered auto or manual map.
+  ///
+  /// If needed, additional parameters can be passed to [params], which are
+  /// forwarded to manual map expressions.
   TTarget map<TSource, TTarget>(
     TSource source, [
-    Map params = const {},
+    Map<String, dynamic> params = const {},
   ]) {
-    if (hasAutoMap(TTarget, TSource) && source is AutoMapperModel) {
-      return _autoMaps[TTarget]![TSource]!.map(source) as TTarget;
-    } else if (hasManualMap(TTarget, TSource)) {
-      return _manualMaps[TTarget]![TSource]!.map(source, this, params)
-          as TTarget;
+    final autoMap = _autoMaps[TTarget]?[TSource];
+    if (autoMap != null) {
+      if (source is! AutoMapperModel) {
+        throw MapDoesNotExistException(
+          TTarget,
+          TSource,
+          'An auto map for $TSource -> $TTarget exists, but $TSource does not '
+          'implement AutoMapperModel, so it cannot be serialized. Register a '
+          'manual map instead.',
+        );
+      }
+      return ensureTarget<TSource, TTarget>(autoMap.map(source));
     }
-    throw MapDoesNotExistError(TTarget, TSource);
+    final manualMap = _manualMaps[TTarget]?[TSource];
+    if (manualMap != null) {
+      return ensureTarget<TSource, TTarget>(
+        manualMap.map(source, this, params),
+      );
+    }
+    throw MapDoesNotExistException(TTarget, TSource);
   }
 
   /// Maps the [source] with auto map.
   TTarget autoMap<TSource extends AutoMapperModel, TTarget>(TSource source) {
-    if (hasAutoMap(TTarget, TSource)) {
-      return _autoMaps[TTarget]![TSource]!.map(source) as TTarget;
+    final autoMap = _autoMaps[TTarget]?[TSource];
+    if (autoMap == null) {
+      throw MapDoesNotExistException(TTarget, TSource);
     }
-    throw MapDoesNotExistError(TTarget, TSource);
+    return ensureTarget<TSource, TTarget>(autoMap.map(source));
   }
 
   /// Maps the [source] with manual map.
+  ///
+  /// If needed, additional parameters can be passed to [params].
   TTarget manualMap<TSource, TTarget>(
     TSource source, [
-    Map params = const {},
+    Map<String, dynamic> params = const {},
   ]) {
-    if (hasManualMap(TTarget, TSource)) {
-      return _manualMaps[TTarget]![TSource]!.map(source, this, params)
-          as TTarget;
+    final manualMap = _manualMaps[TTarget]?[TSource];
+    if (manualMap == null) {
+      throw MapDoesNotExistException(TTarget, TSource);
     }
-    throw MapDoesNotExistError(TTarget, TSource);
+    return ensureTarget<TSource, TTarget>(manualMap.map(source, this, params));
+  }
+
+  /// Ensures the [value] returned by a mapping expression for a
+  /// [TSource] -> [TTarget] map is actually a [TTarget].
+  ///
+  /// Throws a [MapException] describing the mismatch otherwise. This is used
+  /// by [map], [autoMap] and [manualMap] instead of blindly casting, and it is
+  /// exposed so wrapper libraries can reuse the same validation.
+  static TTarget ensureTarget<TSource, TTarget>(Object? value) {
+    if (value is! TTarget) {
+      throw MapException(
+        'The mapping expression for $TSource -> $TTarget returned a value of '
+        'type ${value.runtimeType}, which is not a $TTarget.',
+      );
+    }
+    return value;
   }
 }

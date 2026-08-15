@@ -1,38 +1,38 @@
 import 'package:automap/automap.dart';
 
 class AutoSource implements AutoMapperModel {
-  final int x;
+  const AutoSource(this.x);
 
-  AutoSource(this.x);
+  final int x;
 
   @override
   Map<String, dynamic> toAutoJson() => {'x': x};
 }
 
 class AutoTarget {
-  final int x;
+  const AutoTarget(this.x);
 
-  AutoTarget(this.x);
+  final int x;
 
   static AutoTarget fromAutoJson(Map<String, dynamic> json) =>
       AutoTarget(json['x'] as int);
 }
 
 class ManualSource {
-  final int x;
+  const ManualSource(this.x);
 
-  ManualSource(this.x);
+  final int x;
 }
 
 class ManualTarget {
-  final int x;
+  const ManualTarget(this.x);
 
-  ManualTarget(this.x);
+  final int x;
 }
 
 void main() {
   AutoMapper.I
-    ..addMap<AutoSource, AutoTarget>(
+    ..addAutoMap<AutoSource, AutoTarget>(
       AutoTarget.fromAutoJson,
     )
     ..addManualMap<AutoTarget, AutoSource>(
@@ -41,8 +41,8 @@ void main() {
     ..addManualMap<ManualSource, ManualTarget>(
       (source, mapper, params) => ManualTarget(source.x),
     );
-  final autoSource = AutoSource(5);
-  final manualSource = ManualSource(5);
+  final autoSource = const AutoSource(5);
+  final manualSource = const ManualSource(5);
   final autoTarget = AutoMapper.I.map<AutoSource, AutoTarget>(
     autoSource,
   );
@@ -52,6 +52,5 @@ void main() {
   final manualTarget = AutoMapper.I.map<ManualSource, ManualTarget>(
     manualSource,
   );
-  // ignore: avoid_print
   print('${autoTarget.x}, ${secondAutoSource.x}, ${manualTarget.x}');
 }
